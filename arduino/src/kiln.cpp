@@ -2,6 +2,7 @@
 #include <PID_v1.h>
 #include <Adafruit_MAX31855.h>
 #include "kiln.h"
+#include <ArduinoJson.h>
 
 // --- Hardware Pins ---
 #define DO   3
@@ -31,13 +32,14 @@ unsigned long soakTimeElapsed = 0;
 unsigned long coolRate = 300; // degrees per hour
 unsigned long lastReportTime = 0;
 unsigned long reportInterval = 10000; // Report every 10 seconds
-
+@
 // --- LED Indicator ---
 unsigned long ledLastChangeTime = 0;
 bool ledState = HIGH;
 
 void updateLedIndicator();
 void reportStatus();
+void handleCommand(JsonDocument& doc);
 
 void setup() {
     // Initialize the external USB-to-Serial adapter for logging
@@ -54,6 +56,18 @@ void setup() {
 }
 
 void loop() {
+    // Check for incoming serial data
+    if (Serial_.available() > 0) {
+        StaticJsonDocument<200> doc;
+        DeserializationError error = deserializeJson(doc, Serial_);
+        if (error) {
+            Serial_.print(F("deserializeJson() failed: "));
+            Serial_.println(error.c_str());
+            return;
+        }
+        handleCommand(doc);
+    }
+
     // 1. Read Temperature
     input = thermocouple.readCelsius();
     
@@ -91,8 +105,7 @@ void loop() {
         case EMERGENCY_STOP:
             digitalWrite(SSR_PIN, LOW);
             digitalWrite(LED_PIN, LOW);
-            Serial_.println("{\"state\": \"EMERGENCY_STOP\", \"message\": \"Thermocouple disconnected!\"}");
- 
+
             // The updateLedIndicator() function will handle the blinking
             break;
         default: break;
@@ -178,5 +191,40 @@ void updateLedIndicator() {
         ledState = HIGH;
         ledLastChangeTime = now;
         digitalWrite(LED_PIN, ledState);
+    }
+}
+
+void handleCommand(JsonDocument& doc) {
+    const char* command = doc["command"];
+
+    if (strcmp(command, "start") == 0) {
+        currentState = RAMP;
+        StaticJsonDocument<100> response;
+        response["status"] = "ok";
+        response["message"] = "Kiln started";
+        serializeJson(response, Serial_);
+        Serial_.println();
+    } else if (strcmp(command, "stop") == 0) {
+        currentState = IDLE;
+        digitalWrite(SSR_PIN, LOW); // Ensure SSR is off
+        StaticJsonDocument<100> response;
+        response["status"] = "ok";
+        response["message"] = "Kiln stopped";
+        serializeJson(response, Serial_);
+        Serial_.println();
+    } else if (strcmp(command, "profile") == 0) {
+        // Example of setting a profile
+        // {"command":"profile", "setpoint": 1000, "rampRate": 300, "soakDuration": 600}
+        setpoint = doc["setpoint"];
+        rampRate = doc["rampRate"];
+        soakDuration = doc["soakDuration"] | 600000; // Default to 10 minutes if not provided
+        
+        StaticJsonDocument<100> response;
+        response["status"] = "ok";
+        response["message"] = "Profile updated";
+        serializeJson(response, Serial_);
+        Serial_.println();
+    } else if (strcmp(command, "status") == 0) {
+        reportStatus();
     }
 }
