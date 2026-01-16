@@ -1,0 +1,24 @@
+{"name": "SimpleRamp", "commands": [
+ {"command":"profile", "targetTemperature": 1200, "rampTime": 5, "soakDuration": 2, "coolTime": 10},
+ {"command":"start"},
+
+ {"command":"testInput", "temperature": 20, "setPoint": 20},
+ {"command":"testInput", "temperature": 25},
+ {"command":"testInput", "temperature": 100, "setPoint": 100},
+ {"command":"testInput", "temperature": 300},
+ {"command":"testInput", "temperature": 600, "setPoint": 600},
+ {"command":"testInput", "temperature": 900},
+ {"command":"testInput", "temperature": 1100, "setPoint": 1100},
+ {"command":"testInput", "temperature": 1190},
+
+ {"command":"stop"},
+
+ {"command":"profile", "targetTemperature": 1000, "rampTime": 10, "soakDuration": 5, "coolTime": 1},
+ {"command":"testInput", "temperature": 65, "setPoint": 65, "duration": 20},
+ {"command":"start"},
+ {"command":"testInput", "temperature": 500},
+ {"command":"testInput", "temperature": 1190, "setPoint": 1200},
+ {"command":"testInput", "temperature": 1200},
+
+ {"command":"stop"}
+]}
