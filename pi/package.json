@@ -1,0 +1,12 @@
+{
+  "name": "kiln-pi-root",
+  "private": true,
+  "workspaces": [
+    "service",
+    "client"
+  ],
+  "scripts": {
+    "start": "npm run build -w client && npm start -w service",
+    "build": "npm run build -w client"
+  }
+}
