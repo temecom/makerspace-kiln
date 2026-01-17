@@ -214,6 +214,7 @@ void reportStatus() {
         doc["ssrUpper"] = digitalRead(SSR_PIN_UPPER) == HIGH;
         doc["ssrLower"] = digitalRead(SSR_PIN_LOWER) == HIGH;
         doc["output"] = output;
+        doc["isSimulated"] = isSimulated;
 
         serializeJson(doc, Serial_);
         Serial_.println();
