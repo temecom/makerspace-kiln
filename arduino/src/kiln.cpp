@@ -167,7 +167,6 @@ void loop() {
             }
             break;
         case EMERGENCY_STOP:
-            isSimulated = false; // Added
             digitalWrite(SSR_PIN_UPPER, LOW);
             digitalWrite(SSR_PIN_LOWER, LOW);
             // The updateLedIndicator() function will handle the blinking
