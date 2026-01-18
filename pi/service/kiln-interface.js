@@ -1,5 +1,6 @@
-const { SerialPort } = require('serialport');
-const { ReadlineParser } = require('@serialport/parser-readline');
+import { SerialPort } from 'serialport';
+import { ReadlineParser } from '@serialport/parser-readline';
+import kilnDatabase from './db.js';
 
 class KilnInterface {
     constructor(portPath, baudRate = 9600) {
@@ -8,6 +9,8 @@ class KilnInterface {
         this.port = null;
         this.parser = null;
         this.onStatusCallback = null;
+        this.lastState = null;
+        this.activeSessionId = null;
     }
 
     connect() {
@@ -47,13 +50,50 @@ class KilnInterface {
         });
     }
 
-    handleData(data) {
+    async handleData(data) {
+        // If it's a command response, just pass it to the callback and exit.
+        if (data.status === 'ok' || data.status === 'error') {
+            if (this.onStatusCallback) {
+                this.onStatusCallback(data);
+            } else {
+                console.log('Received Command Response:', data);
+            }
+            return;
+        }
+
         // If it's a status report, pass it to the callback
         if (this.onStatusCallback) {
             this.onStatusCallback(data);
         } else {
             console.log('Received:', data);
         }
+
+        // --- Session Management ---
+        const currentState = data.state;
+        if (currentState && currentState !== this.lastState) {
+            // STARTING a new session
+            if (currentState === 'STARTING') {
+                const newSession = await kilnDatabase.createSession();
+                this.activeSessionId = newSession.id;
+                console.log(`[SESSION] Started new session: ${this.activeSessionId}`);
+            }
+
+            // ENDING a session
+            const isStopping = currentState === 'IDLE' || currentState === 'EMERGENCY_STOP';
+            if (this.activeSessionId && isStopping) {
+                const finalStatus = currentState === 'IDLE' ? 'COMPLETED' : 'ABORTED';
+                console.log(`[SESSION] Ending session: ${this.activeSessionId} with status: ${finalStatus}`);
+                await kilnDatabase.endSession(this.activeSessionId, finalStatus);
+                this.activeSessionId = null;
+            }
+        }
+
+        // Add event to active session
+        if (this.activeSessionId && data.state) {
+            await kilnDatabase.addSessionEvent(this.activeSessionId, data);
+        }
+
+        this.lastState = currentState;
     }
 
     onStatus(callback) {
@@ -118,4 +158,4 @@ class KilnInterface {
     }
 }
 
-module.exports = KilnInterface;
+export default KilnInterface;

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     // Serial Port Configuration
     // On Linux/RPi this is often /dev/ttyACM0 or /dev/ttyUSB0
     // On Windows this might be COM3, COM4, etc.

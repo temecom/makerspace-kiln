@@ -1,8 +1,14 @@
-const config = require('./config');
-const KilnInterface = require('./kiln-interface');
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
+import config from './config.js';
+import kilnDatabase from './db.js';
+import KilnInterface from './kiln-interface.js';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 console.log('Initializing Kiln Controller Service...');
 
@@ -17,6 +23,17 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // --- Web API Routes ---
+
+// GET /api/history - Get all history records
+app.get('/api/history', (req, res) => {
+    res.json(kilnDatabase.db.data.sessions);
+});
+
+// DELETE /api/history - Clear all history records
+app.delete('/api/history', async (req, res) => {
+    await kilnDatabase.clearHistory();
+    res.json({ success: true, message: 'History cleared' });
+});
 
 // GET /api/events - Server Sent Events endpoint
 app.get('/api/events', (req, res) => {
@@ -167,6 +184,7 @@ async function main() {
         console.error(`Attempted port: ${config.serialPort}`);
         console.error('Details:', error.message);
         console.log('\nHint: Check if the Arduino is connected and the port is correct in config.js');
+        process.exit(1);
     }
 }
 
