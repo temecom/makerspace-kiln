@@ -12,12 +12,8 @@
  * testInput allows simulating temperature readings for testing. duration and initial setpoint are optional.
  */
 
-#include <Arduino.h>
-#include <PID_v1.h>
-#include <Adafruit_MAX31855.h>
+       
 #include "kiln.h"
-#include <ArduinoJson.h>
-
 // --- Hardware Pins ---
 #define DO   3
 #define CS   4
@@ -27,7 +23,7 @@
 #define LED_PIN 13 // Built-in LED
 
 // --- State Machine ---
-enum KilnState { IDLE, RAMP, SOAK, COOLING, EMERGENCY_STOP };
+enum KilnState { IDLE, STARTING, RAMP, SOAK, COOLING, COMPLETED, ABORTED, EMERGENCY_STOP };
 KilnState currentState = IDLE;
 
 // --- Thermal Variables ---
@@ -59,9 +55,7 @@ unsigned long reportInterval = 10000; // Report every 10 seconds
 unsigned long ledLastChangeTime = 0;
 bool ledState = HIGH;
 
-void updateLedIndicator();
-void reportStatus();
-void handleCommand(JsonDocument& doc);
+
 
 void setup() {
     // Initialize the external USB-to-Serial adapter for logging
@@ -126,6 +120,10 @@ void loop() {
     switch (currentState) {
         case IDLE:
             break;
+        case STARTING:
+            reportStatus(true);
+            currentState = RAMP;
+            break;
         case RAMP:
             // Increment setpoint over time based on degrees/hour
             if (input >= targetTemperature) {
@@ -154,7 +152,7 @@ void loop() {
         case COOLING:
             // Allow temperature to drop naturally
             if (input < 50) { // Arbitrary threshold to return to IDLE
-                currentState = IDLE;
+                currentState = COMPLETED;
                 isSimulated = false; // Added
             }
             if (onWindowRollover && coolRate > 0) {
@@ -171,13 +169,21 @@ void loop() {
             digitalWrite(SSR_PIN_LOWER, LOW);
             // The updateLedIndicator() function will handle the blinking
             break;
+        case COMPLETED:
+        case ABORTED:
+            isSimulated = false; // Added
+            digitalWrite(SSR_PIN_UPPER, LOW);
+            digitalWrite(SSR_PIN_LOWER, LOW);
+            reportStatus(true);
+            currentState = IDLE;
+            break;
         default: break;
     }
 
 
     // 3. Compute PID & Control SSR
     // Only compute PID if not in an emergency stop state or IDLE
-    if (currentState != EMERGENCY_STOP && currentState != IDLE) {
+    if (currentState != EMERGENCY_STOP && currentState != IDLE && currentState != COMPLETED && currentState != ABORTED && currentState != STARTING) {
         kilnPID.Compute();
         
         // Time-Proportioning (Software PWM)
@@ -199,17 +205,20 @@ void loop() {
     reportStatus();
 }
 
-void reportStatus() {
+void reportStatus(bool forceReport) {
     // Report current status as JSON every repott interval
-    if (millis() - lastReportTime >= reportInterval) {
+    if (millis() - lastReportTime >= reportInterval || forceReport) {
         lastReportTime = millis();
         
         JsonDocument doc;
         switch (currentState) {
             case IDLE: doc["state"] = "IDLE"; break;
+            case STARTING: doc["state"] = "STARTING"; break;
             case RAMP: doc["state"] = "RAMP"; break;
             case SOAK: doc["state"] = "SOAK"; break;
             case COOLING: doc["state"] = "COOLING"; break;
+            case COMPLETED: doc["state"] = "COMPLETED"; break;
+            case ABORTED: doc["state"] = "ABORTED"; break;
             case EMERGENCY_STOP: doc["state"] = "EMERGENCY_STOP"; break;
         }
 
@@ -266,14 +275,14 @@ void handleCommand(JsonDocument& doc) {
     const char* command = doc["command"];
 
     if (strcmp(command, "start") == 0) {
-        currentState = RAMP;
+        currentState = STARTING;
         JsonDocument response;
         response["status"] = "ok";
         response["message"] = "Kiln started";
         serializeJson(response, Serial_);
         Serial_.println();
     } else if (strcmp(command, "stop") == 0) {
-        currentState = IDLE;
+        currentState = ABORTED;
         isSimulated = false; // Added
         digitalWrite(SSR_PIN_UPPER, LOW); // Ensure SSR is off
         digitalWrite(SSR_PIN_LOWER, LOW);
@@ -345,6 +354,7 @@ void handleCommand(JsonDocument& doc) {
                 unsigned long durationMinutes = doc["duration"];
                 simulationTimeout = durationMinutes * 60000;
                 simulationStartTime = millis();
+                currentState = IDLE; 
             } else if (simulationTimeout == 0) {
                  // If no duration provided and we aren't already running, default to a safe value or infinite? 
                  // Let's say if no duration is sent, we just update the temp and keep existing timer 
@@ -361,7 +371,6 @@ void handleCommand(JsonDocument& doc) {
             }
 
             isSimulated = true;
-
             JsonDocument response;
             response["status"] = "ok";
             response["message"] = "Simulation started/updated";
