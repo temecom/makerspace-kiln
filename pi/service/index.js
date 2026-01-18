@@ -91,6 +91,22 @@ app.post('/api/test', (req, res) => {
     });
 });
 
+// POST /api/test/temp - Set simulated temperature
+app.post('/api/test/temp', (req, res) => {
+    const { temperature } = req.body;
+    
+    if (temperature === undefined) {
+        return res.status(400).json({ success: false, message: 'temperature is required' });
+    }
+
+    kiln.testInput(temperature);
+    res.json({ 
+        success: true, 
+        message: 'Simulated temperature set',
+        params: { temperature }
+    });
+});
+
 // Handle incoming status messages from the Kiln
 kiln.onStatus((data) => {
     latestStatus = { ...data, timestamp: Date.now() };

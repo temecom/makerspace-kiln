@@ -1,6 +1,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
+import TestTempControl from './TestTempControl.vue'
+
+const props = defineProps({
+  testParams: Object,
+  profile: Object // Not used directly, but needed for the component signature
+})
+
+const emit = defineEmits(['update:testParams'])
 
 const status = ref({
   state: 'UNKNOWN',
@@ -9,31 +17,21 @@ const status = ref({
   targetTemperature: 0,
   timestamp: 0,
   ssrUpper: false,
-  ssrLower: false
+  ssrLower: false,
+  isSimulated: false
 })
 const loading = ref(false)
 const message = ref('')
 
 let eventSource = null
 
-// Profile Form
-const profile = ref({
-  targetTemperature: 1000,
-  rampTime: 60,
-  soakDuration: 10,
-  coolTime: 60
-})
-
-// Test Mode Form
-const testParams = ref({
-  temperature: 25,
-  duration: 5,
-  setPoint: 25
-})
-
 const isStale = computed(() => {
   if (!status.value.timestamp) return true
   return (Date.now() - status.value.timestamp) > 15000 // 15 seconds
+})
+
+const isSimulated = computed(() => {
+  return status.value.isSimulated
 })
 
 const startKiln = async () => {
@@ -54,22 +52,8 @@ const stopKiln = async () => {
   }
 }
 
-const updateProfile = async () => {
-  try {
-    await axios.post('/api/profile', profile.value)
-    message.value = 'Profile updated'
-  } catch (err) {
-    message.value = 'Error updating profile'
-  }
-}
-
-const startTest = async () => {
-  try {
-    await axios.post('/api/test', testParams.value)
-    message.value = 'Test mode initiated'
-  } catch (err) {
-    message.value = 'Error initiating test mode'
-  }
+const handleTempUpdate = (newTemp) => {
+  emit('update:testParams', { ...props.testParams, temperature: newTemp })
 }
 
 onMounted(() => {
@@ -100,8 +84,6 @@ onUnmounted(() => {
 
 <template>
   <div class="dashboard">
-    <h1>Kiln Controller</h1>
-    
     <div class="status-panel" :class="{ stale: isStale }">
       <h2>Status: {{ status.state }}</h2>
       <div class="readings">
@@ -123,6 +105,7 @@ onUnmounted(() => {
         <span :class="status.ssrLower ? 'ssr-active' : 'ssr-inactive'">Lower: {{ status.ssrLower ? 'ON' : 'OFF' }}</span>
       </div>
       <p v-if="isStale" class="warning">Status is stale. (Last update: {{ new Date(status.timestamp).toLocaleTimeString() }})</p>
+      <p v-if="isSimulated" class="simulation-warning">SIMULATION MODE ACTIVE</p>
     </div>
 
     <div v-if="message" class="message">{{ message }}</div>
@@ -135,44 +118,11 @@ onUnmounted(() => {
           <button @click="stopKiln" class="stop-btn">STOP</button>
         </div>
       </div>
-
-      <div class="card profile-panel">
-        <h3>Firing Profile</h3>
-        <div class="form-group">
-          <label>Target Temp (°C)</label>
-          <input v-model.number="profile.targetTemperature" type="number">
-        </div>
-        <div class="form-group">
-          <label>Ramp Time (min)</label>
-          <input v-model.number="profile.rampTime" type="number">
-        </div>
-        <div class="form-group">
-          <label>Soak Duration (min)</label>
-          <input v-model.number="profile.soakDuration" type="number">
-        </div>
-        <div class="form-group">
-          <label>Cool Time (min)</label>
-          <input v-model.number="profile.coolTime" type="number">
-        </div>
-        <button @click="updateProfile">Update Profile</button>
-      </div>
-
-      <div class="card test-panel">
-        <h3>Test Mode</h3>
-        <div class="form-group">
-          <label>Simulated Temp (°C)</label>
-          <input v-model.number="testParams.temperature" type="number">
-        </div>
-        <div class="form-group">
-          <label>Duration (min)</label>
-          <input v-model.number="testParams.duration" type="number">
-        </div>
-        <div class="form-group">
-          <label>Setpoint (°C)</label>
-          <input v-model.number="testParams.setPoint" type="number">
-        </div>
-        <button @click="startTest">Start Test Simulation</button>
-      </div>
+      <TestTempControl 
+        v-if="isSimulated" 
+        :temperature="testParams.temperature"
+        @update:temperature="handleTempUpdate"
+      />
     </div>
   </div>
 </template>
@@ -239,16 +189,23 @@ onUnmounted(() => {
   margin-top: 20px;
 }
 .ssr-active {
-  color: #4cc9f0;
-  text-shadow: 0 0 8px rgba(76, 201, 240, 0.4);
+  color: #2da44e; /* Green */
+  text-shadow: 0 0 8px rgba(45, 164, 78, 0.4);
 }
 .ssr-inactive {
-  color: #555;
+  color: #cf222e; /* Red */
 }
 .warning {
   color: #ff9f43;
   font-weight: bold;
   margin-top: 15px;
+}
+.simulation-warning {
+  color: #f39c12;
+  font-weight: bold;
+  margin-top: 15px;
+  text-align: center;
+  font-size: 1.2em;
 }
 .message {
   padding: 12px;
@@ -278,11 +235,9 @@ onUnmounted(() => {
 }
 .start-btn {
   background-color: #2da44e;
-  color: white;
 }
 .stop-btn {
   background-color: #cf222e;
-  color: white;
 }
 .form-group {
   margin-bottom: 10px;
