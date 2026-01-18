@@ -155,6 +155,7 @@ void loop() {
             // Allow temperature to drop naturally
             if (input < 50) { // Arbitrary threshold to return to IDLE
                 currentState = IDLE;
+                isSimulated = false; // Added
             }
             if (onWindowRollover && coolRate > 0) {
                 setpoint -= (coolRate / 3600) * (windowSize / 1000); // Decrease setpoint
@@ -166,6 +167,7 @@ void loop() {
             }
             break;
         case EMERGENCY_STOP:
+            isSimulated = false; // Added
             digitalWrite(SSR_PIN_UPPER, LOW);
             digitalWrite(SSR_PIN_LOWER, LOW);
             // The updateLedIndicator() function will handle the blinking
@@ -175,8 +177,8 @@ void loop() {
 
 
     // 3. Compute PID & Control SSR
-    // Only compute PID if not in an emergency stop state
-    if (currentState != EMERGENCY_STOP) {
+    // Only compute PID if not in an emergency stop state or IDLE
+    if (currentState != EMERGENCY_STOP && currentState != IDLE) {
         kilnPID.Compute();
         
         // Time-Proportioning (Software PWM)
@@ -187,6 +189,10 @@ void loop() {
             digitalWrite(SSR_PIN_UPPER, LOW);
             digitalWrite(SSR_PIN_LOWER, LOW);
         }
+    } else {
+        // Force SSRs off in IDLE or EMERGENCY_STOP
+        digitalWrite(SSR_PIN_UPPER, LOW);
+        digitalWrite(SSR_PIN_LOWER, LOW);
     }
 
     // 4. Update LED Indicator
@@ -269,6 +275,7 @@ void handleCommand(JsonDocument& doc) {
         Serial_.println();
     } else if (strcmp(command, "stop") == 0) {
         currentState = IDLE;
+        isSimulated = false; // Added
         digitalWrite(SSR_PIN_UPPER, LOW); // Ensure SSR is off
         digitalWrite(SSR_PIN_LOWER, LOW);
         JsonDocument response;
