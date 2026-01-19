@@ -153,7 +153,6 @@ void loop() {
             // Allow temperature to drop naturally
             if (input < 50) { // Arbitrary threshold to return to IDLE
                 currentState = COMPLETED;
-                isSimulated = false; // Added
             }
             if (onWindowRollover && coolRate > 0) {
                 setpoint -= (coolRate / 3600) * (windowSize / 1000); // Decrease setpoint
@@ -171,10 +170,10 @@ void loop() {
             break;
         case COMPLETED:
         case ABORTED:
+            reportStatus(true);
             isSimulated = false; // Added
             digitalWrite(SSR_PIN_UPPER, LOW);
             digitalWrite(SSR_PIN_LOWER, LOW);
-            reportStatus(true);
             currentState = IDLE;
             break;
         default: break;
