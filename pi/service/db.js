@@ -42,9 +42,13 @@ class KilnDatabase {
   async addSessionEvent(sessionId, eventData) {
     const session = this.db.data.sessions.find(s => s.id === sessionId);
     if (session) {
+      const startTime = new Date(session.startTime);
+      const now = new Date();
+      const elapsedTimeInSeconds = Math.round((now - startTime) / 1000);
+
       session.events.push({
         ...eventData,
-        timestamp: new Date().toISOString()
+        elapsedTime: elapsedTimeInSeconds
       });
       await this.db.write();
     }

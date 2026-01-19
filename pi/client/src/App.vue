@@ -5,6 +5,7 @@ import ProfileView from './components/ProfileView.vue'
 import TestView from './components/TestView.vue'
 import HistoryView from './components/HistoryView.vue'
 import PreferenceView from './components/PreferenceView.vue'
+import PlotView from './components/PlotView.vue'
 
 const routes = {
   '/': KilnDashboard,
@@ -12,6 +13,7 @@ const routes = {
   '/test': TestView,
   '/history': HistoryView,
   '/preferences': PreferenceView
+  // PlotView is handled dynamically
 }
 
 const currentPath = ref(window.location.hash)
@@ -35,8 +37,34 @@ window.addEventListener('hashchange', () => {
 })
 
 const currentView = computed(() => {
-  return routes[currentPath.value.slice(1) || '/'] || KilnDashboard
-})
+  const path = currentPath.value.slice(1) || '/';
+  const mainPath = path.split('?')[0];
+
+  if (mainPath === '/history/plot') {
+    return PlotView;
+  }
+  // Ensure we match '/history' correctly
+  return routes[mainPath] || routes['/'];
+});
+
+const currentViewProps = computed(() => {
+  const path = currentPath.value.slice(1) || '/';
+  const [mainPath, queryString] = path.split('?');
+
+  if (mainPath === '/history/plot' && queryString) {
+    const params = new URLSearchParams(queryString);
+    const sessionId = params.get('sessionId');
+    if (sessionId) {
+      return { sessionId };
+    }
+  }
+
+  // Default props for other views
+  return {
+    profile: profile.value,
+    testParams: testParams.value
+  };
+});
 </script>
 
 <template>
@@ -54,8 +82,7 @@ const currentView = computed(() => {
     <main>
       <component 
         :is="currentView" 
-        :profile="profile"
-        :testParams="testParams"
+        v-bind="currentViewProps"
         @update:profile="Object.assign(profile, $event)"
         @update:testParams="Object.assign(testParams, $event)"
       />

@@ -35,6 +35,17 @@ app.delete('/api/history', async (req, res) => {
     res.json({ success: true, message: 'History cleared' });
 });
 
+// GET /api/history/:id - Get a single session by ID
+app.get('/api/history/:id', (req, res) => {
+    const sessionId = parseInt(req.params.id, 10);
+    const session = kilnDatabase.db.data.sessions.find(s => s.id === sessionId);
+    if (session) {
+        res.json(session);
+    } else {
+        res.status(404).json({ success: false, message: 'Session not found' });
+    }
+});
+
 // GET /api/events - Server Sent Events endpoint
 app.get('/api/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');

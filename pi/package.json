@@ -8,5 +8,9 @@
   "scripts": {
     "start": "npm run build -w client && npm start -w service",
     "build": "npm run build -w client"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "vue-chartjs": "^5.3.3"
   }
 }

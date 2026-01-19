@@ -39,6 +39,13 @@ const formatTimestamp = (isoString) => {
   return new Date(isoString).toLocaleString()
 }
 
+const formatElapsedTime = (seconds) => {
+  if (seconds === undefined || seconds === null) return '--:--';
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+};
+
 const toggleSessionDetails = (sessionId) => {
   if (expandedSessionId.value === sessionId) {
     expandedSessionId.value = null
@@ -70,18 +77,19 @@ onMounted(() => {
         No history records found.
       </div>
       <div v-for="session in sessions" :key="session.id" class="session-item">
-        <div class="session-summary" @click="toggleSessionDetails(session.id)">
-          <span class="session-id">Session #{{ session.id }}</span>
-          <span class="session-time">{{ formatTimestamp(session.startTime) }}</span>
-          <span class="session-status" :class="`status-${session.status.toLowerCase()}`">{{ session.status }}</span>
-          <span class="session-events-count">{{ session.events.length }} events</span>
-          <span class="session-toggle">{{ expandedSessionId === session.id ? '▼' : '▶' }}</span>
+        <div class="session-summary">
+          <span class="session-id" @click.stop="toggleSessionDetails(session.id)">Session #{{ session.id }}</span>
+          <span class="session-time" @click.stop="toggleSessionDetails(session.id)">{{ formatTimestamp(session.startTime) }}</span>
+          <span class="session-status" :class="`status-${session.status.toLowerCase()}`" @click.stop="toggleSessionDetails(session.id)">{{ session.status }}</span>
+          <span class="session-events-count" @click.stop="toggleSessionDetails(session.id)">{{ session.events.length }} events</span>
+          <a :href="`#/history/plot?sessionId=${session.id}`" class="plot-link-btn" @click.stop>Plot</a>
+          <span class="session-toggle" @click.stop="toggleSessionDetails(session.id)">{{ expandedSessionId === session.id ? '▼' : '▶' }}</span>
         </div>
         <div v-if="expandedSessionId === session.id" class="session-details">
           <table>
             <thead>
               <tr>
-                <th>Timestamp</th>
+                <th>Time (MM:SS)</th>
                 <th>State</th>
                 <th>Temp (°C)</th>
                 <th>Setpoint (°C)</th>
@@ -89,8 +97,8 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="event in session.events" :key="event.timestamp">
-                <td>{{ formatTimestamp(event.timestamp) }}</td>
+              <tr v-for="(event, index) in session.events" :key="index">
+                <td>{{ formatElapsedTime(event.elapsedTime) }}</td>
                 <td><span class="state-label">{{ event.state }}</span></td>
                 <td>{{ event.input?.toFixed(1) || '--' }}</td>
                 <td>{{ event.setpoint?.toFixed(1) || '--' }}</td>
@@ -165,12 +173,14 @@ onMounted(() => {
 }
 .session-summary {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto auto;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  cursor: pointer;
   font-weight: bold;
+}
+.session-summary > *:not(.plot-link-btn) {
+  cursor: pointer;
 }
 .session-summary:hover {
   background-color: #3a3a3a;
@@ -178,6 +188,29 @@ onMounted(() => {
 .session-id {
   color: #4cc9f0; /* Bright Cyan from dashboard */
 }
+
+.session-time,
+td:first-child {
+  font-family: 'Courier New', monospace;
+  color: #aaa;
+  font-size: 0.9em;
+}
+
+.plot-link-btn {
+  padding: 0.3rem 0.8rem;
+  background-color: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9em;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+.plot-link-btn:hover {
+  background-color: #4f4f4f;
+}
+
 .session-status {
   padding: 0.3rem 0.6rem;
   border-radius: 12px;

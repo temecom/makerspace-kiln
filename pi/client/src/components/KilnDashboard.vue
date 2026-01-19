@@ -18,7 +18,8 @@ const status = ref({
   timestamp: 0,
   ssrUpper: false,
   ssrLower: false,
-  isSimulated: false
+  isSimulated: false,
+  remainingTime: 0
 })
 const loading = ref(false)
 const message = ref('')
@@ -29,6 +30,18 @@ const isStale = computed(() => {
   if (!status.value.timestamp) return true
   return (Date.now() - status.value.timestamp) > 15000 // 15 seconds
 })
+
+const countdown = computed(() => {
+  if (status.value.remainingTime === undefined || status.value.remainingTime === null) return '00:00:00';
+  let totalSeconds = Math.max(0, Math.round(status.value.remainingTime));
+  
+  const hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+});
 
 const isSimulated = computed(() => {
   return status.value.isSimulated
@@ -85,7 +98,13 @@ onUnmounted(() => {
 <template>
   <div class="dashboard">
     <div class="status-panel" :class="{ stale: isStale }">
-      <h2>Status: {{ status.state }}</h2>
+      <div class="status-header">
+        <h2>Status: {{ status.state }}</h2>
+        <div class="countdown-timer">
+          <span class="label">Time Remaining</span>
+          <span class="value">{{ countdown }}</span>
+        </div>
+      </div>
       <div class="readings">
         <div class="reading">
           <span class="label">Current Temp</span>
@@ -143,12 +162,34 @@ onUnmounted(() => {
 .status-panel.stale {
   border: 2px solid orange;
 }
-.status-panel h2 {
-  margin-top: 0;
-  color: #e1e1e1;
-  font-size: 1.8em;
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   border-bottom: 1px solid #333;
   padding-bottom: 12px;
+  margin-bottom: 30px;
+}
+.status-panel h2 {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: #e1e1e1;
+  font-size: 1.8em;
+}
+.countdown-timer {
+  text-align: right;
+}
+.countdown-timer .label {
+  color: #888;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.countdown-timer .value {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #4cc9f0;
+  font-family: 'Courier New', monospace;
 }
 .readings {
   display: flex;

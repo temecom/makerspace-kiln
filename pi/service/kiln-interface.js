@@ -61,11 +61,21 @@ class KilnInterface {
             return;
         }
 
+        // --- Augment data with remainingTime ---
+        // The 'time' property from the controller is the elapsed time of the current segment in seconds.
+        // The 'totalTime' is the total duration of the current segment in seconds.
+        let remainingTime = 0;
+        if ((data.state === 'RUNNING' || data.state === 'RAMP') && data.totalTime && data.time) {
+            remainingTime = data.totalTime - data.time;
+        }
+        const augmentedData = { ...data, remainingTime };
+
+
         // If it's a status report, pass it to the callback
         if (this.onStatusCallback) {
-            this.onStatusCallback(data);
+            this.onStatusCallback(augmentedData);
         } else {
-            console.log('Received:', data);
+            console.log('Received:', augmentedData);
         }
 
         // --- Session Management ---
