@@ -50,6 +50,8 @@ unsigned long soakTimeElapsed = 0;
 unsigned long coolRate = 300; // degrees per hour
 unsigned long lastReportTime = 0;
 unsigned long reportInterval = 10000; // Report every 10 seconds
+unsigned long timeRemaining = 0;
+unsigned long lastTimeRemainingUpdate = 0;
 
 // --- LED Indicator ---
 unsigned long ledLastChangeTime = 0;
@@ -75,11 +77,24 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     
     windowStartTime = millis();
+    lastTimeRemainingUpdate = millis();
     kilnPID.SetOutputLimits(0, windowSize);
     kilnPID.SetMode(AUTOMATIC);
 }
 
 void loop() {
+    unsigned long now = millis();
+    // Update time remaining
+    if (currentState == RAMP || currentState == SOAK || currentState == COOLING) {
+        unsigned long elapsed = now - lastTimeRemainingUpdate;
+        if (timeRemaining >= elapsed) {
+            timeRemaining -= elapsed;
+        } else {
+            timeRemaining = 0;
+        }
+    }
+    lastTimeRemainingUpdate = now;
+
     // Check for incoming serial data
     if (Serial_.available() > 0) {
         String input = Serial_.readStringUntil('\n');
@@ -110,7 +125,7 @@ void loop() {
    }
 
     // Check for Window Rollover (10s cycle) used for integration and PWM
-    unsigned long now = millis();
+    now = millis();
     bool onWindowRollover = false;
     if (now - windowStartTime > windowSize) {
         windowStartTime += windowSize;
@@ -122,6 +137,18 @@ void loop() {
         case IDLE:
             break;
         case STARTING:
+            {
+                // Calculate total estimated time
+                unsigned long rampTime = 0;
+                if (rampRate > 0 && targetTemperature > input) {
+                    rampTime = (unsigned long)(((targetTemperature - input) / rampRate) * 3600000);
+                }
+                unsigned long coolTime = 0;
+                if (coolRate > 0 && targetTemperature > 50) {
+                     coolTime = (unsigned long)(((targetTemperature - 50) / coolRate) * 3600000);
+                }
+                timeRemaining = rampTime + soakDuration + coolTime;
+            }
             reportStatus(true);
             currentState = RAMP;
             break;
@@ -131,6 +158,13 @@ void loop() {
                 setpoint = targetTemperature;
                 currentState = SOAK;
                 soakTimeElapsed = 0;
+                
+                // Recalculate remaining time for Soak + Cool
+                unsigned long coolTime = 0;
+                if (coolRate > 0 && targetTemperature > 50) {
+                     coolTime = (unsigned long)(((targetTemperature - 50) / coolRate) * 3600000);
+                }
+                timeRemaining = soakDuration + coolTime;
             }
             if (onWindowRollover) {
                 if (setpoint < targetTemperature) {
@@ -145,6 +179,12 @@ void loop() {
             // Maintain setpoint for soak duration
             if(soakTimeElapsed > soakDuration) {
                 currentState = COOLING;
+                 // Recalculate remaining time for Cool
+                unsigned long coolTime = 0;
+                if (coolRate > 0 && setpoint > 50) {
+                     coolTime = (unsigned long)(((setpoint - 50) / coolRate) * 3600000);
+                }
+                timeRemaining = coolTime;
             }
             if (onWindowRollover) {
                 soakTimeElapsed += windowSize;
@@ -224,6 +264,7 @@ void reportStatus(bool forceReport) {
         }
 
         doc["targetTemperature"] = targetTemperature;
+        doc["timeRemaining"] = timeRemaining;
         doc["setpoint"] = setpoint;
         doc["input"] = input;
         doc["ssrUpper"] = digitalRead(SSR_PIN_UPPER) == HIGH;
