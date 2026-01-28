@@ -11,6 +11,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 console.log('Initializing Kiln Controller Service...');
+console.log(`Environment: ${config.isProduction ? 'Production' : 'Development'}`);
+console.log(`Serving Client from: ${config.clientPath}`);
 
 const kiln = new KilnInterface(config.serialPort, config.baudRate);
 const app = express();
@@ -20,7 +22,7 @@ let clients = [];
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(config.clientPath));
 
 // --- Web API Routes ---
 
@@ -157,7 +159,7 @@ kiln.onStatus((data) => {
 
 // Serve index.html for any other requests (SPA support)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.sendFile(path.join(config.clientPath, 'index.html'));
 });
 
 async function main() {

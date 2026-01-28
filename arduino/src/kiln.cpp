@@ -128,7 +128,8 @@ void loop() {
             break;
         case RAMP:
             // Increment setpoint over time based on degrees/hour
-            if (input >= targetTemperature) {
+            if (setpoint >= targetTemperature && input >= targetTemperature) {
+                setpoint = targetTemperature;
                 currentState = SOAK;
                 soakTimeElapsed = 0;
             }

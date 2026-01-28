@@ -1,13 +1,18 @@
 {
-  "name": "kiln-pi-root",
-  "private": true,
+  "name": "kiln-pi-monorepo",
+  "version": "1.0.0",
+  "description": "Root orchestration for Kiln Pi Appliance",
   "workspaces": [
     "service",
     "client"
   ],
   "scripts": {
+    "deploy": "node deploy.js",
     "start": "npm run build -w client && npm start -w service",
     "build": "npm run build -w client"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
