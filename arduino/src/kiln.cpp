@@ -66,6 +66,7 @@ void setup() {
     JsonDocument doc;
     doc["state"] = "setup";
     doc["message"] = "Kiln controller starting up...";
+    doc["version"] = VERSION;
     serializeJson(doc, Serial_);
     Serial_.println();
 
@@ -126,7 +127,8 @@ void loop() {
             break;
         case RAMP:
             // Increment setpoint over time based on degrees/hour
-            if (input >= targetTemperature) {
+            if (setpoint >= targetTemperature && input >= targetTemperature) {
+                setpoint = targetTemperature;
                 currentState = SOAK;
                 soakTimeElapsed = 0;
             }
