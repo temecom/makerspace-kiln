@@ -195,6 +195,7 @@ void loop() {
             // Allow temperature to drop naturally
             if (input < 50) { // Arbitrary threshold to return to IDLE
                 currentState = COMPLETED;
+                timeRemaining = 0;
             }
             if (onWindowRollover && coolRate > 0) {
                 setpoint -= (coolRate / 3600) * (windowSize / 1000); // Decrease setpoint
@@ -207,11 +208,13 @@ void loop() {
             break;
         case EMERGENCY_STOP:
             digitalWrite(SSR_PIN_UPPER, LOW);
-            digitalWrite(SSR_PIN_LOWER, LOW);
+            digitalWrite(SSR_PIN_LOWER, LOW);            
+            timeRemaining = 0;
             // The updateLedIndicator() function will handle the blinking
             break;
         case COMPLETED:
         case ABORTED:
+            timeRemaining = 0;
             reportStatus(true);
             isSimulated = false; // Added
             digitalWrite(SSR_PIN_UPPER, LOW);
