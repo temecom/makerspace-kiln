@@ -1,6 +1,6 @@
 #ifndef KILN_H
 #define KILN_H
-#define VERSION "0.1.0"
+#define VERSION "0.1.2"
 #include <Arduino.h>
 #include <PID_v1.h>
 #include <Adafruit_MAX31855.h>
