@@ -1,16 +1,16 @@
-import m, { dirname as D } from "path";
-import { fileURLToPath as P } from "url";
+import d, { dirname as D } from "path";
+import { fileURLToPath as g } from "url";
 import { Low as I } from "lowdb";
 import "node:fs";
-import { writeFile as N, rename as R, readFile as C } from "node:fs/promises";
-import { join as y, dirname as b, basename as E } from "node:path";
-import { fileURLToPath as T } from "node:url";
-import { SerialPort as j } from "serialport";
+import { writeFile as C, rename as R, readFile as N } from "node:fs/promises";
+import { join as y, dirname as P, basename as j } from "node:path";
+import { fileURLToPath as b } from "node:url";
+import { SerialPort as E } from "serialport";
 import O from "stream";
-import f from "express";
+import p from "express";
 import $ from "cors";
-const _ = P(import.meta.url), S = m.dirname(_), g = process.env.NODE_ENV === "production", l = {
-  isProduction: g,
+const _ = g(import.meta.url), w = d.dirname(_), S = process.env.NODE_ENV === "production", l = {
+  isProduction: S,
   // Serial Port Configuration
   // On Linux/RPi this is often /dev/ttyACM0 or /dev/ttyUSB0
   // On Windows this might be COM3, COM4, etc.
@@ -24,13 +24,13 @@ const _ = P(import.meta.url), S = m.dirname(_), g = process.env.NODE_ENV === "pr
   // Web App Path (Changes based on environment)
   // Production (Pi): './public' (bundled as sibling to index.js)
   // Development Local: '../client/dist' (relative to source index.js)
-  clientPath: g ? m.join(S, "public") : m.join(S, "../client/dist")
+  clientPath: S ? d.join(w, "public") : d.join(w, "../client/dist")
   // Future: Google AppScript Configuration
   // cloudApiUrl: 'https://script.google.com/macros/s/...'
 };
 function k(i) {
-  const t = i instanceof URL ? T(i) : i.toString();
-  return y(b(t), `.${E(t)}.tmp`);
+  const t = i instanceof URL ? b(i) : i.toString();
+  return y(P(t), `.${j(t)}.tmp`);
 }
 async function x(i, t, e) {
   for (let s = 0; s < t; s++)
@@ -63,7 +63,7 @@ class q {
   async #l(t) {
     this.#s = !0;
     try {
-      await N(this.#e, t, "utf-8"), await x(async () => {
+      await C(this.#e, t, "utf-8"), await x(async () => {
         await R(this.#e, this.#t);
       }, 10, 100), this.#n?.[0]();
     } catch (e) {
@@ -82,7 +82,7 @@ class q {
     return this.#s ? this.#a(t) : this.#l(t);
   }
 }
-class A {
+class F {
   #t;
   #e;
   constructor(t) {
@@ -91,7 +91,7 @@ class A {
   async read() {
     let t;
     try {
-      t = await C(this.#t, "utf-8");
+      t = await N(this.#t, "utf-8");
     } catch (e) {
       if (e.code === "ENOENT")
         return null;
@@ -103,12 +103,12 @@ class A {
     return this.#e.write(t);
   }
 }
-class F {
+class A {
   #t;
   #e;
   #s;
   constructor(t, { parse: e, stringify: s }) {
-    this.#t = new A(t), this.#e = e, this.#s = s;
+    this.#t = new F(t), this.#e = e, this.#s = s;
   }
   async read() {
     const t = await this.#t.read();
@@ -118,7 +118,7 @@ class F {
     return this.#t.write(this.#s(t));
   }
 }
-class M extends F {
+class H extends A {
   constructor(t) {
     super(t, {
       parse: JSON.parse,
@@ -126,8 +126,8 @@ class M extends F {
     });
   }
 }
-const U = b(T(import.meta.url)), G = y(U, "db.json");
-class H {
+const M = P(b(import.meta.url)), U = y(M, "db.json");
+class B {
   constructor(t, e) {
     this.db = new I(t, e);
   }
@@ -156,10 +156,10 @@ class H {
   async addSessionEvent(t, e) {
     const s = this.db.data.sessions.find((n) => n.id === t);
     if (s) {
-      const n = new Date(s.startTime), c = Math.round((/* @__PURE__ */ new Date() - n) / 1e3);
+      const n = new Date(s.startTime), T = Math.round((/* @__PURE__ */ new Date() - n) / 1e3);
       s.events.push({
         ...e,
-        elapsedTime: c
+        elapsedTime: T
       }), await this.db.write();
     }
   }
@@ -179,12 +179,12 @@ class H {
     this.db.data.sessions = [], await this.db.write();
   }
 }
-const L = new M(G), B = { sessions: [] }, u = await new H(L, B).init();
-var w = {}, p = {};
-Object.defineProperty(p, "__esModule", { value: !0 });
-p.DelimiterParser = void 0;
-const J = O;
-class K extends J.Transform {
+const G = new H(U), J = { sessions: [] }, c = await new B(G, J).init();
+var f = {}, h = {};
+Object.defineProperty(h, "__esModule", { value: !0 });
+h.DelimiterParser = void 0;
+const L = O;
+class K extends L.Transform {
   includeDelimiter;
   delimiter;
   buffer;
@@ -205,10 +205,10 @@ class K extends J.Transform {
     this.push(this.buffer), this.buffer = Buffer.alloc(0), t();
   }
 }
-p.DelimiterParser = K;
-Object.defineProperty(w, "__esModule", { value: !0 });
-var v = w.ReadlineParser = void 0;
-const W = p;
+h.DelimiterParser = K;
+Object.defineProperty(f, "__esModule", { value: !0 });
+var v = f.ReadlineParser = void 0;
+const W = h;
 class z extends W.DelimiterParser {
   constructor(t) {
     const e = {
@@ -220,14 +220,14 @@ class z extends W.DelimiterParser {
     typeof e.delimiter == "string" && (e.delimiter = Buffer.from(e.delimiter, e.encoding)), super(e);
   }
 }
-v = w.ReadlineParser = z;
+v = f.ReadlineParser = z;
 class V {
   constructor(t, e = 9600) {
     this.portPath = t, this.baudRate = e, this.port = null, this.parser = null, this.onStatusCallback = null, this.lastState = null, this.activeSessionId = null;
   }
   connect() {
     return new Promise((t, e) => {
-      this.port = new j({ path: this.portPath, baudRate: this.baudRate }, (s) => {
+      this.port = new E({ path: this.portPath, baudRate: this.baudRate }, (s) => {
         if (s)
           return e(s);
       }), this.port.on("error", (s) => {
@@ -251,23 +251,20 @@ class V {
       this.onStatusCallback ? this.onStatusCallback(t) : console.log("Received Command Response:", t);
       return;
     }
-    let e = 0;
-    (t.state === "RUNNING" || t.state === "RAMP") && t.totalTime && t.time && (e = t.totalTime - t.time);
-    const s = { ...t, remainingTime: e };
-    this.onStatusCallback ? this.onStatusCallback(s) : console.log("Received:", s);
-    const n = t.state;
-    if (n && n !== this.lastState) {
-      if (n === "STARTING") {
-        const c = await u.createSession();
-        this.activeSessionId = c.id, console.log(`[SESSION] Started new session: ${this.activeSessionId}`);
+    this.onStatusCallback ? this.onStatusCallback(t) : console.log("Received:", t);
+    const e = t.state;
+    if (e && e !== this.lastState) {
+      if (e === "STARTING") {
+        const n = await c.createSession();
+        this.activeSessionId = n.id, console.log(`[SESSION] Started new session: ${this.activeSessionId}`);
       }
-      const r = n === "IDLE" || n === "EMERGENCY_STOP";
-      if (this.activeSessionId && r) {
-        const c = n === "IDLE" ? "COMPLETED" : "ABORTED";
-        console.log(`[SESSION] Ending session: ${this.activeSessionId} with status: ${c}`), await u.endSession(this.activeSessionId, c), this.activeSessionId = null;
+      const s = e === "COMPLETED" || e === "ABORTED" || e === "EMERGENCY_STOP";
+      if (this.activeSessionId && s) {
+        const n = e;
+        console.log(`[SESSION] Ending session: ${this.activeSessionId} with status: ${n}`), await c.endSession(this.activeSessionId, n), this.activeSessionId = null;
       }
     }
-    this.activeSessionId && t.state && await u.addSessionEvent(this.activeSessionId, t), this.lastState = n;
+    this.activeSessionId && t.state && await c.addSessionEvent(this.activeSessionId, t), this.lastState = e;
   }
   onStatus(t) {
     this.onStatusCallback = t;
@@ -318,29 +315,29 @@ class V {
     e !== void 0 && (n.duration = e), s !== void 0 && (n.setPoint = s), this.sendCommand(n);
   }
 }
-const Y = P(import.meta.url);
+const Y = g(import.meta.url);
 D(Y);
 console.log("Initializing Kiln Controller Service...");
 console.log(`Environment: ${l.isProduction ? "Production" : "Development"}`);
 console.log(`Serving Client from: ${l.clientPath}`);
-const a = new V(l.serialPort, l.baudRate), o = f();
-let h = { state: "UNKNOWN", timestamp: 0 }, d = [];
+const a = new V(l.serialPort, l.baudRate), o = p();
+let m = { state: "UNKNOWN", timestamp: 0 }, u = [];
 o.use($());
-o.use(f.json());
-o.use(f.static(l.clientPath));
+o.use(p.json());
+o.use(p.static(l.clientPath));
 o.get("/api/history", (i, t) => {
-  t.json(u.db.data.sessions);
+  t.json(c.db.data.sessions);
 });
 o.delete("/api/history", async (i, t) => {
-  await u.clearHistory(), t.json({ success: !0, message: "History cleared" });
+  await c.clearHistory(), t.json({ success: !0, message: "History cleared" });
 });
 o.get("/api/history/:id", (i, t) => {
-  const e = parseInt(i.params.id, 10), s = u.db.data.sessions.find((n) => n.id === e);
+  const e = parseInt(i.params.id, 10), s = c.db.data.sessions.find((n) => n.id === e);
   s ? t.json(s) : t.status(404).json({ success: !1, message: "Session not found" });
 });
 o.get("/api/events", (i, t) => {
   t.setHeader("Content-Type", "text/event-stream"), t.setHeader("Cache-Control", "no-cache"), t.setHeader("Connection", "keep-alive"), t.flushHeaders();
-  const e = JSON.stringify(h);
+  const e = JSON.stringify(m);
   t.write(`data: ${e}
 
 `);
@@ -348,12 +345,12 @@ o.get("/api/events", (i, t) => {
     id: s,
     res: t
   };
-  d.push(n), i.on("close", () => {
-    d = d.filter((r) => r.id !== s);
+  u.push(n), i.on("close", () => {
+    u = u.filter((r) => r.id !== s);
   });
 });
 o.get("/api/status", (i, t) => {
-  t.json(h);
+  t.json(m);
 });
 o.post("/api/start", (i, t) => {
   a.start(), t.json({ success: !0, message: "Start command sent" });
@@ -392,14 +389,14 @@ o.post("/api/test/temp", (i, t) => {
   });
 });
 a.onStatus((i) => {
-  h = { ...i, timestamp: Date.now() }, d.forEach((t) => {
-    t.res.write(`data: ${JSON.stringify(h)}
+  m = { ...i, timestamp: Date.now() }, u.forEach((t) => {
+    t.res.write(`data: ${JSON.stringify(m)}
 
 `);
   }), i.state ? console.log(`[STATUS] State: ${i.state} | Temp: ${i.input?.toFixed(1)}°C | Setpoint: ${i.setpoint?.toFixed(1)}°C`) : i.message ? console.log(`[MSG] ${i.message}`) : console.log("[DATA]", i);
 });
 o.get("*", (i, t) => {
-  t.sendFile(m.join(l.clientPath, "index.html"));
+  t.sendFile(d.join(l.clientPath, "index.html"));
 });
 async function Q() {
   try {

@@ -67,10 +67,13 @@ try {
     console.log(`\n🚀 Uploading to ${CONFIG.piHost}...`);
     run(`scp ${CONFIG.packageName} ${CONFIG.piUser}@${CONFIG.piHost}:~/`);
 
-    console.log(`\n✅ DEPLOYMENT SENT.`);
-    console.log(`   Run on Pi:`);
-    console.log(`   sudo tar -xzf ${CONFIG.packageName} -C ${CONFIG.piTargetDir}`);
-    console.log(`   cd ${CONFIG.piTargetDir} && npm install --omit=dev && sudo systemctl restart kiln-controller`);
+    // 7. Remote Execute
+    console.log(`\n🔌 Executing on Pi...`);
+    // Extract -> Fix Permissions (pi:pi) -> Install Dependencies (as pi) -> Restart Service
+    const remoteCmd = `sudo tar -xzf ${CONFIG.packageName} -C ${CONFIG.piTargetDir} && sudo chown -R pi:pi ${CONFIG.piTargetDir} && cd ${CONFIG.piTargetDir} && sudo -u pi npm install --omit=dev && sudo systemctl restart kiln-controller`;
+    run(`ssh ${CONFIG.piUser}@${CONFIG.piHost} "${remoteCmd}"`);
+
+    console.log(`\n✅ DEPLOYMENT COMPLETE.`);
 
 } catch (e) {
     console.error('\n❌ FAILED:', e.message);

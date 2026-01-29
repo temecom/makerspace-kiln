@@ -8,7 +8,7 @@ User=pi
 Group=dialout
 
 # Working directory on the target machine
-WorkingDirectory=/opt/makerspace-kiln/service
+WorkingDirectory=/opt/makerspace-kiln
 
 # Start command
 ExecStart=/usr/bin/node index.js

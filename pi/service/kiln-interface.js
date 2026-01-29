@@ -61,21 +61,11 @@ class KilnInterface {
             return;
         }
 
-        // --- Augment data with remainingTime ---
-        // The 'time' property from the controller is the elapsed time of the current segment in seconds.
-        // The 'totalTime' is the total duration of the current segment in seconds.
-        let remainingTime = 0;
-        if ((data.state === 'RUNNING' || data.state === 'RAMP') && data.totalTime && data.time) {
-            remainingTime = data.totalTime - data.time;
-        }
-        const augmentedData = { ...data, remainingTime };
-
-
         // If it's a status report, pass it to the callback
         if (this.onStatusCallback) {
-            this.onStatusCallback(augmentedData);
+            this.onStatusCallback(data);
         } else {
-            console.log('Received:', augmentedData);
+            console.log('Received:', data);
         }
 
         // --- Session Management ---
@@ -89,9 +79,9 @@ class KilnInterface {
             }
 
             // ENDING a session
-            const isStopping = currentState === 'IDLE' || currentState === 'EMERGENCY_STOP';
+            const isStopping = currentState === 'COMPLETED' || currentState === 'ABORTED' || currentState === 'EMERGENCY_STOP';
             if (this.activeSessionId && isStopping) {
-                const finalStatus = currentState === 'IDLE' ? 'COMPLETED' : 'ABORTED';
+                const finalStatus = currentState;
                 console.log(`[SESSION] Ending session: ${this.activeSessionId} with status: ${finalStatus}`);
                 await kilnDatabase.endSession(this.activeSessionId, finalStatus);
                 this.activeSessionId = null;

@@ -19,7 +19,7 @@ const status = ref({
   ssrUpper: false,
   ssrLower: false,
   isSimulated: false,
-  remainingTime: 0
+  timeRemaining: 0
 })
 const loading = ref(false)
 const message = ref('')
@@ -32,8 +32,12 @@ const isStale = computed(() => {
 })
 
 const countdown = computed(() => {
-  if (status.value.remainingTime === undefined || status.value.remainingTime === null) return '00:00:00';
-  let totalSeconds = Math.max(0, Math.round(status.value.remainingTime));
+  if (status.value.timeRemaining === undefined || status.value.timeRemaining === null) return '00:00:00';
+  // Check if value is likely in milliseconds (greater than 100 hours worth of seconds is unlikely for this kiln)
+  // or simply assume milliseconds since valid values are usually large if ms. 
+  // Given the input 1164805, which is ~19 mins in ms, but ~13 days in seconds.
+  // It is safer to divide by 1000.
+  let totalSeconds = Math.max(0, Math.round(status.value.timeRemaining / 1000));
   
   const hours = Math.floor(totalSeconds / 3600);
   totalSeconds %= 3600;
